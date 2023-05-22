@@ -1,0 +1,134 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns:os="http://www.mulesoft.org/schema/mule/os"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns:proxy="http://www.mulesoft.org/schema/mule/proxy"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:api-gateway="http://www.mulesoft.org/schema/mule/api-gateway"
+	xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+        http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+        http://www.mulesoft.org/schema/mule/api-gateway http://www.mulesoft.org/schema/mule/api-gateway/current/mule-api-gateway.xsd
+        http://www.mulesoft.org/schema/mule/proxy http://www.mulesoft.org/schema/mule/proxy/current/mule-proxy.xsd
+        http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/os http://www.mulesoft.org/schema/mule/os/current/mule-os.xsd">
+
+	<configuration-properties
+		file="config.properties" />
+
+	<configuration
+		defaultResponseTimeout="${proxy.responseTimeout}" />
+
+	<proxy:config name="proxy-config">
+		<proxy:ignore-headers>
+			<proxy:ignore-header value="ms2-authorization" />
+		</proxy:ignore-headers>
+	</proxy:config>
+	<ee:object-store-caching-strategy
+		name="Caching_Strategy" doc:name="Caching Strategy"
+		doc:id="e94e5fc7-9a08-41f6-a163-2a3480bd38f0"/>
+	<flow name="proxy-flow">
+		<http:listener config-ref="http-listener-config"
+			path="${proxy.path}" responseStreamingMode="AUTO">
+			<http:response statusCode="#[attributes.statusCode]"
+				reasonPhrase="#[attributes.reasonPhrase]">
+				<http:headers>#[if (vars.proxyResponseHeaders?) vars.proxyResponseHeaders else {}]</http:headers>
+			</http:response>
+		</http:listener>
+
+		<proxy:request-headers config-ref="proxy-config"
+			target="proxyRequestHeaders" />
+		<until-successful maxRetries="1" doc:name="Retry with new access token" doc:id="c171d97e-b4d4-42d2-8c98-388b35d13400" millisBetweenRetries="0">
+			<flow-ref doc:name="request-flow" doc:id="75cf51f7-4617-4c9f-b47f-11bb567d3f40" name="request-flow" />
+			<choice doc:name="Choice" doc:id="5cde75e0-7308-43c6-92a4-b8fc9dce24af">
+			<when expression='#[401 == attributes.statusCode and payload.code == "UNAUTHORIZED_ACCESS_TO_RESOURCE"]'>
+				<ee:invalidate-cache doc:name="Clear Cache" doc:id="7722eb3b-3e54-4469-a853-62a4eef28d87" cachingStrategy-ref="Caching_Strategy" />
+					<raise-error doc:name="Raise error" doc:id="42686988-72d1-4834-bc5b-858da2eadf58" type="EXCHANGE:UNAUTHORIZED"/>
+			</when>
+
+		</choice>
+		</until-successful>
+		<proxy:response-headers
+			config-ref="proxy-config" target="proxyResponseHeaders" />
+	</flow>
+	<flow name="request-flow"
+		doc:id="0975d10c-c22c-4474-9481-df619cdef618">
+		<flow-ref doc:name="Get Access Token"
+			doc:id="f1fb0065-606b-4016-be92-eb095f66c5af"
+			target="accessToken" name="retrive-token-flow"/>
+		<ee:transform doc:name="Set ms2-authorization Header"
+			doc:id="22e31cf2-0335-4bc5-92a2-9b197666d468">
+			<ee:message>
+			</ee:message>
+			<ee:variables>
+				<ee:set-variable variableName="proxyRequestHeaders"><![CDATA[%dw 2.0
+output application/java
+---
+(vars.proxyRequestHeaders) update {
+	case ."ms2-authorization"! -> vars.accessToken
+}]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<http:request config-ref="http-request-config"
+			method="#[attributes.method]"
+			path="#[if (attributes.maskedRequestPath == '/' and attributes.requestUri[-1] != '/') '' else attributes.maskedRequestPath]" doc:name="Call Mocking Service">
+			<http:headers>#[vars.proxyRequestHeaders]</http:headers>
+			<http:uri-params>#[attributes.uriParams]</http:uri-params>
+			<http:query-params>#[attributes.queryParams]</http:query-params>
+			<http:response-validator>
+				<http:success-status-code-validator
+					values="0..599" />
+			</http:response-validator>
+		</http:request>
+		<error-handler>
+			<on-error-continue enableNotifications="true"
+				logException="false" doc:name="On Error Continue"
+				doc:id="7451d5de-6593-4c3b-9d0e-c3ca2d9b1e5b" type="HTTP:TIMEOUT">
+				<ee:transform doc:name="Transform Message"
+					doc:id="145abbb6-c90b-409e-88fb-aa57aa9ebc55">
+					<ee:message>
+						<ee:set-payload><![CDATA[#['']]]></ee:set-payload>
+						<ee:set-attributes><![CDATA[
+                            {
+                                statusCode: 504
+                            }
+                        ]]></ee:set-attributes>
+					</ee:message>
+				</ee:transform>
+			</on-error-continue>
+		</error-handler>
+	</flow>
+	<flow name="retrive-token-flow"
+		doc:id="75b68870-46dd-4b2a-bdbf-2326523465e8" maxConcurrency="1">
+		<ee:transform doc:name="Transform Message"
+			doc:id="1c3380c6-f302-4525-bc6f-8f30d8f7a6d2">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+    "client_id": p("client_id"),
+    "client_secret": p("client_secret"),
+    "grant_type": "client_credentials"
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<ee:cache doc:name="Cache"
+			doc:id="e062eb62-f000-4e83-b2c4-821ffa3c341a"
+			cachingStrategy-ref="Caching_Strategy">
+			<http:request method="POST"
+				doc:name="Access Token Request"
+				doc:id="d8b8aa85-e645-4583-a2c6-9c149b87d4bc" url="${token_url}" />
+			<ee:transform doc:name="access_token"
+				doc:id="bb2255a6-0200-4415-83a7-02de123f6660">
+				<ee:message>
+					<ee:set-payload><![CDATA[%dw 2.0
+output application/java
+---
+(payload as Object).access_token as String]]></ee:set-payload>
+				</ee:message>
+			</ee:transform>
+		</ee:cache>
+	</flow>
+</mule>
