@@ -51,6 +51,20 @@ http://www.mulesoft.org/schema/mule/os http://www.mulesoft.org/schema/mule/os/cu
 		</until-successful>
 		<proxy:response-headers
 			config-ref="proxy-config" target="proxyResponseHeaders" />
+		<ee:transform doc:name="Add Charset" doc:id="55402bd4-6763-41e4-8a3c-f898a4410cca" >
+			<ee:message />
+			<ee:variables >
+				<ee:set-variable variableName="proxyResponseHeaders" ><![CDATA[%dw 2.0
+output application/json
+
+fun hasCharset(x) = x contains 'charset='
+fun addCharset(x) = (x splitBy ';' ++ ['charset=' ++ p('charset')]) map trim($) joinBy '; '
+---
+vars.proxyResponseHeaders update {
+    case contentType at ."content-type" if(not hasCharset(contentType)) -> addCharset(contentType)
+}]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
 	</flow>
 	<flow name="request-flow"
 		doc:id="0975d10c-c22c-4474-9481-df619cdef618">
