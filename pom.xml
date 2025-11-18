@@ -9,25 +9,17 @@
 	<packaging>mule-application</packaging>
 	<name>mocking-service-proxy</name>
 
-	<properties>
-		<muleHttpConnector>1.7.2</muleHttpConnector>
-		<muleMavenPluginVersion>4.5.3</muleMavenPluginVersion>
-		<proxyExtensionVersion>1.1.4</proxyExtensionVersion>
-
-		<attachMuleSources>true</attachMuleSources>
-	</properties>
-
 	<dependencies>
 		<dependency>
 			<groupId>com.mulesoft.anypoint</groupId>
 			<artifactId>mule-http-proxy-extension</artifactId>
-			<version>${proxyExtensionVersion}</version>
+			<version>1.2.0</version>
 			<classifier>mule-plugin</classifier>
 		</dependency>
 		<dependency>
 			<groupId>org.mule.connectors</groupId>
 			<artifactId>mule-http-connector</artifactId>
-			<version>1.9.0</version>
+			<version>1.11.0</version>
 			<classifier>mule-plugin</classifier>
 		</dependency>
 	</dependencies>
@@ -37,7 +29,7 @@
 			<plugin>
 				<groupId>org.mule.tools.maven</groupId>
 				<artifactId>mule-maven-plugin</artifactId>
-				<version>${muleMavenPluginVersion}</version>
+				<version>4.5.3</version>
 				<extensions>true</extensions>
 				<configuration>
 					<classifier>mule-application</classifier>
