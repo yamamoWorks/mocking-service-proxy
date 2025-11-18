@@ -1,33 +1,32 @@
 {
-  "configs": [
-    "inbound-config.xml",
-    "outbound-config.xml",
-    "http-proxy.xml"
-  ],
-  "secureProperties": [
-    "inbound.keystore.password",
-    "inbound.keystore.keyPassword",
-    "inbound.truststore.password",
-    "outbound.keystore.password",
-    "outbound.keystore.keyPassword",
-    "outbound.truststore.password",
-    "anypoint.platform.client_secret"
-  ],
-  "redeploymentEnabled": true,
-  "name": "org.mule.examples:api-gateway-sample-http-proxy:2.0.5",
-  "minMuleVersion": "4.1.1",
-  "requiredProduct": "MULE_EE",
-  "classLoaderModelLoaderDescriptor": {
-    "id": "mule",
-    "attributes": {
-      "exportedPackages": [],
-      "exportedResources": [
-        "config.properties"
-      ]
-    }
-  },
-  "bundleDescriptorLoader": {
-    "id": "mule",
-    "attributes": {}
-  }
+    "configs": [
+        "inbound-config.xml",
+        "outbound-config.xml",
+        "http-proxy.xml"
+    ],
+    "redeploymentEnabled": true,
+    "name": "org.mule.examples:api-gateway-sample-http-proxy:2.0.5",
+    "classLoaderModelLoaderDescriptor": {
+        "attributes": {
+            "exportedPackages": [],
+            "exportedResources": ["config.properties"]
+        },
+        "id": "mule"
+    },
+    "requiredProduct": "MULE_EE",
+    "minMuleVersion": "4.1.1",
+    "bundleDescriptorLoader": {
+        "attributes": {},
+        "id": "mule"
+    },
+    "javaSpecificationVersions": ["17"],
+    "secureProperties": [
+        "inbound.keystore.password",
+        "inbound.keystore.keyPassword",
+        "inbound.truststore.password",
+        "outbound.keystore.password",
+        "outbound.keystore.keyPassword",
+        "outbound.truststore.password",
+        "anypoint.platform.client_secret"
+    ]
 }

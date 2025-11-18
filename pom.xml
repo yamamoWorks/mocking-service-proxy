@@ -11,7 +11,7 @@
 
 	<properties>
 		<muleHttpConnector>1.7.2</muleHttpConnector>
-		<muleMavenPluginVersion>3.8.2</muleMavenPluginVersion>
+		<muleMavenPluginVersion>4.5.3</muleMavenPluginVersion>
 		<proxyExtensionVersion>1.1.4</proxyExtensionVersion>
 
 		<attachMuleSources>true</attachMuleSources>
